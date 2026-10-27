@@ -1,6 +1,7 @@
 #!/usr/bin/dh-exec
 
 arch usr/src/radxa-overlays-${DEB_VERSION}/
+include usr/src/radxa-overlays-${DEB_VERSION}/
 debian/radxa-overlays.c usr/src/radxa-overlays-${DEB_VERSION}/
 debian/Makefile.dkms => usr/src/radxa-overlays-${DEB_VERSION}/Makefile
 debian/dkms.post_build usr/src/radxa-overlays-${DEB_VERSION}/

@@ -1,0 +1,102 @@
+// SPDX-License-Identifier: BSD-3-Clause
+/*
+ * Copyright (c) 2025 Radxa Computer (Shenzhen) Co., Ltd.
+ */
+
+/dts-v1/;
+/plugin/;
+
+#include "qcs6490-radxa-dragon-q6a-camx-common.dtsi"
+
+/ {
+	metadata {
+		title = "Enable CAM1 + CAM2 on Qualcomm CAMX hardware ISP";
+		compatible = "radxa,dragon-q6a";
+		category = "camera";
+		exclusive = "cci0", "cci1", "camss", "camx-isp", "cci0_i2c0", "cci1_i2c0", "cci1_i2c1";
+		description = "Enable CAM1 (IMX577, slot 12, CSIPHY0, CCI0) and CAM2 (two-lane IMX415, slot 8, CSIPHY2, CCI1) together on the Qualcomm CAMX hardware ISP, including the module-local 12 MHz clock of the CAM2 module. Self-contained: this single overlay carries the shared CAMX infrastructure and every sensor node, so do not enable cam0-camx-common or the per-camera CAMX overlays at the same time. Requires the matching sensor module binaries for slot 12 and slot 8.";
+	};
+};
+
+/* CAM1: CSIPHY0, CCI0 master 0, MCLK0 (GPIO64), reset GPIO20.
+ * The sensor module bin selects sensor identification and operating modes. */
+&cam_cci0 {
+	qcom,cam-sensor12 {
+		compatible = "qcom,cam-sensor";
+		cell-index = <12>;
+		csiphy-sd-index = <0>;
+		sensor-position-roll = <0>;
+		sensor-position-pitch = <0>;
+		sensor-position-yaw = <180>;
+		cam_vio-supply = <&vreg_l6b_1p2>;
+		regulator-names = "cam_vio";
+		power-domains = <&camcc CAM_CC_TITAN_TOP_GDSC>;
+		rgltr-cntrl-support;
+		rgltr-min-voltage = <1200000>;
+		rgltr-max-voltage = <1200000>;
+		rgltr-load-current = <120000>;
+		gpio-no-mux = <0>;
+		pinctrl-names = "cam_default", "cam_suspend";
+		pinctrl-0 = <&cam_sensor_mclk0_active &cam_sensor_active_rst0>;
+		pinctrl-1 = <&cam_sensor_mclk0_suspend &cam_sensor_suspend_rst0>;
+		gpios = <&tlmm 64 0>, <&tlmm 20 0>;
+		gpio-reset = <1>;
+		gpio-req-tbl-num = <0 1>;
+		gpio-req-tbl-flags = <1 0>;
+		gpio-req-tbl-label = "CAM_MCLK0", "CAM_RESET0";
+		sensor-mode = <0>;
+		cci-master = <0>;
+		clocks = <&camcc CAM_CC_MCLK0_CLK>;
+		clock-names = "cam_clk";
+		clock-cntl-level = "nominal";
+		clock-rates = <24000000>;
+		status = "ok";
+	};
+};
+
+&{/} {
+	/* The two-lane IMX415 module supplies its own 12 MHz sensor INCK. */
+	cam2_imx415_xclk: cam2-imx415-xclk {
+		compatible = "fixed-clock";
+		#clock-cells = <0>;
+		clock-frequency = <12000000>;
+		clock-output-names = "cam2_imx415_xclk";
+	};
+};
+
+/* CAM2: CSIPHY2, CCI1 master 0, module-local 12 MHz clock, reset GPIO77.
+ * Slot 8 requires a matching two-lane IMX415 module bin with 12 MHz INCK. */
+&cam_cci1 {
+	qcom,cam-sensor8 {
+		compatible = "qcom,cam-sensor";
+		cell-index = <8>;
+		csiphy-sd-index = <2>;
+		sensor-position-roll = <0>;
+		sensor-position-pitch = <0>;
+		sensor-position-yaw = <180>;
+		cam_vio-supply = <&vreg_l18b_1p8>;
+		regulator-names = "cam_vio";
+		power-domains = <&camcc CAM_CC_TITAN_TOP_GDSC>;
+		rgltr-cntrl-support;
+		pwm-switch;
+		rgltr-min-voltage = <1800000>;
+		rgltr-max-voltage = <1800000>;
+		rgltr-load-current = <120000>;
+		gpio-no-mux = <0>;
+		pinctrl-names = "cam_default", "cam_suspend";
+		pinctrl-0 = <&cam_sensor_active_rst2>;
+		pinctrl-1 = <&cam_sensor_suspend_rst2>;
+		gpios = <&tlmm 77 0>;
+		gpio-reset = <0>;
+		gpio-req-tbl-num = <0>;
+		gpio-req-tbl-flags = <0>;
+		gpio-req-tbl-label = "CAM_RESET2";
+		sensor-mode = <0>;
+		cci-master = <0>;
+		clocks = <&cam2_imx415_xclk>;
+		clock-names = "cam_clk";
+		clock-cntl-level = "nominal";
+		clock-rates = <12000000>;
+		status = "ok";
+	};
+};
